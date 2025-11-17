@@ -1,23 +1,3 @@
-/*
- *  __  __                _             _              
- * |  \/  | ___ _ __ __ _(_)_ __   __ _| |_ ___  _ __  
- * | |\/| |/ _ \ '__/ _` | | '_ \ / _` | __/ _ \| '_ \ 
- * | |  | |  __/ | | (_| | | | | | (_| | || (_) | | | |
- * |_|  |_|\___|_|  \__, |_|_| |_|\__, |\__\___/|_| |_|
- *                  |___/         |___/                
- *  _   _ _       _       ____       _                 _ 
- * | | | (_) __ _| |__   / ___|  ___| |__   ___   ___ | |
- * | |_| | |/ _` | '_ \  \___ \ / __| '_ \ / _ \ / _ \| |
- * |  _  | | (_| | | | |  ___) | (__| | | | (_) | (_) | |
- * |_| |_|_|\__, |_| |_| |____/ \___|_| |_|\___/ \___/|_|
- *          |___/                                         
- *  _____ _                                  _ _   _           
- * | ____| | ___ __   ___   ___  _   _ _ __| | |_(_) ___  ___ 
- * |  _| | |/ __\ \ / / | | / _ \| | | | '__| | __| |/ _ \/ __|
- * | |___| | (__ \ V /| |_| | (_) | |_| | |  | | |_| |  __/\__ \
- * |_____|_|\___| \_/  \__,_|\___/ \__,_|_|  |_|\__|_|\___||___/
- */
-
 document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
@@ -33,78 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // Clear loading message
       activitiesList.innerHTML = "";
 
-      // ASCII art for different activities
-      const activityArt = {
-        "Chess Club": `
-   ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜
-   ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟
-   · · · · · · · ·
-   · · · · · · · ·
-   · · · · · · · ·
-   · · · · · · · ·
-   ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙
-   ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖`,
-        "Drama Club": `
-      .-"""-.
-     /       \\
-     \\       /
-  .-'  .:::.  '-.
- '    .::::::.    '
-'    :::::::::::   '
- '-.:::::::::::.-'
-    '::::::::'
-      ':::::'
-        '::`,
-        "Robotics Team": `
-    ___
-   |_|_|
-   |_|_|      _____
-   |_|_|   __|[_]|__
-   |_|_|  |[] [] []|
- _.l___j__\\      /
-|___________\\____/`,
-        "Debate Society": `
-    _______________
-   /               \\
-  |  ⚖️  DEBATE  ⚖️  |
-  |  Pro vs Con   |
-   \\_______________/
-      |       |
-     /         \\`,
-        "Environmental Club": `
-      🌍
-     /|\\
-    / | \\
-   🌱 🌳 🌻
-  ♻️  ♻️  ♻️`,
-        "Basketball Team": `
-      ___
-     /   \\
-    |  🏀 |
-     \\___/
-      | |
-     /   \\
-    |     |
-   👟   👟`,
-        "Photography Club": `
-   ___________
-  |  _______  |
-  | |       | |
-  | | 📷    | |
-  | |_______| |
-  |___________|
-     |     |`,
-        "Coding Club": `
-   < CODE />
-    ________
-   /        \\
-  /  { }    \\
- |   [ ]     |
- |   ( )     |
-  \\  ===    /
-   \\______/`
-      };
-
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
@@ -114,15 +22,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Create participants list
         const participantsList = details.participants.length > 0
-          ? `<ul class="participants-list">${details.participants.map(email => `<li>${email}</li>`).join('')}</ul>`
+          ? `<ul class="participants-list">${details.participants.map(email => 
+              `<li>
+                <span class="participant-email">${email}</span>
+                <button class="delete-participant" data-activity="${name}" data-email="${email}" title="Remove participant">🗑️</button>
+              </li>`
+            ).join('')}</ul>`
           : '<p class="no-participants">No participants yet</p>';
 
-        // Get ASCII art for this activity, or use a default
-        const asciiArt = activityArt[name] || `
-    ⭐ ${name} ⭐`;
-
         activityCard.innerHTML = `
-          <pre class="ascii-art">${asciiArt}</pre>
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
@@ -168,6 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        
+        // Refresh activities list to show updated participant count
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -184,6 +95,52 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle participant deletion
+  activitiesList.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-participant")) {
+      const activity = event.target.dataset.activity;
+      const email = event.target.dataset.email;
+
+      if (!confirm(`Remove ${email} from ${activity}?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activity)}/participants/${encodeURIComponent(email)}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          messageDiv.textContent = result.message;
+          messageDiv.className = "success";
+          messageDiv.classList.remove("hidden");
+
+          // Refresh activities list
+          fetchActivities();
+
+          // Hide message after 3 seconds
+          setTimeout(() => {
+            messageDiv.classList.add("hidden");
+          }, 3000);
+        } else {
+          messageDiv.textContent = result.detail || "Failed to remove participant";
+          messageDiv.className = "error";
+          messageDiv.classList.remove("hidden");
+        }
+      } catch (error) {
+        messageDiv.textContent = "Failed to remove participant. Please try again.";
+        messageDiv.className = "error";
+        messageDiv.classList.remove("hidden");
+        console.error("Error removing participant:", error);
+      }
     }
   });
 
